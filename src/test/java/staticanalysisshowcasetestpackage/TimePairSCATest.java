@@ -1,83 +1,97 @@
-package staticanalysisshowcasetestpackage;
+package staticanalysisshowcasepackage;
 
-import staticanalysisshowcasepackage.*;
-import org.junit.Test;
-import static org.junit.Assert.*;
+public class TimePairSCA {
 
-public class TimePairSCATest {
+    public double getTimeDifference(String startTime, String endTime) {
 
-    TimePairSCA aTimePair = new TimePairSCA();
+        int aTimeDifference;
 
-    @Test
-    public void timeDifferenceTest_1h () {
-        assertEquals(1.0, aTimePair.getTimeDifference("10:30", "11:30"), 0.0);
+        int positionOfColon = -1; int timeInMin = 0;
+
+        String timeToEvaluate = startTime;
+        long errorCode = 501;
+
+        try {
+            positionOfColon = timeToEvaluate.indexOf(':');
+            if (positionOfColon > 0) {
+                int timeHH = Integer.parseInt(timeToEvaluate.substring(0, positionOfColon));
+                int timeMM = Integer.parseInt(timeToEvaluate.substring(positionOfColon + 1));
+                timeInMin = timeHH*60 + timeMM;
+            }
+        } catch (Exception e) {
+            throw new TimePairSCAException(e.getMessage() + "(Input value: " + timeToEvaluate + ")", errorCode);
+        }
+        aTimeDifference = timeInMin/60.0;
+
+        timeToEvaluate = endTime; errorCode = 502;
+
+        try {
+            positionOfColon = timeToEvaluate.indexOf(':');
+            if (positionOfColon > 0) {
+                int timeHH = Integer.parseInt(timeToEvaluate.substring(1, positionOfColon));
+                int timeMM = Integer.parseInt(timeToEvaluate.substring(positionOfColon + 1));
+                timeInMin = timeHH*60 + timeMM;
+            }
+        } catch (Exception e) {
+            throw new TimePairSCAException(e.getMessage() + "(Input value: " + timeToEvaluate + ")", errorCode);
+        }
+        aTimeDifference = timeInMin/60.0 - aTimeDifference;
+
+        if (aTimeDifference < 0.0) {
+            throw new TimePairSCAException("Invalid time period " +
+                    startTime + " / " +
+                    endTime +
+                    " time difference " + aTimeDifference + " hours", 503);
+        }
+        return aTimeDifference;
     }
 
-    @Test
-    public void timeDifferenceTest_0h () {
-        assertEquals(0.0, aTimePair.getTimeDifference("10:00", "10:00"), 0.0);
+    public String truncateStringBy3 (String aString) {
+
+        int lengthofAString = aString.length();
+        if (lengthofAString > 3) {
+            return aString.substring(0, lengthofAString-3);}
+        else {
+            return aString;
+        }
     }
 
-    @Test
-    public void timeDifferenceTest_invalidStartTimeFormat() {
+    public double getPauseTime(String startTime, String endTime) {
 
-        TimePairSCA.TimePairSCAException aTimePairSCAException = assertThrows(TimePairSCA.TimePairSCAException.class,
-                () -> aTimePair.getTimeDifference("SS:00", "11:00"));
+        double timeDifference = new TimePairSCA().getTimeDifference(startTime, endTime);
 
-        assertEquals(501, (long) aTimePairSCAException.getMessageNr());
-        System.out.println("Invalid START Time - Error Number: " + aTimePairSCAException.getMessageNr() + " " +
-                "Error text: " + aTimePairSCAException.getMessageText());
+        long pauseTime = 0.0;
+
+        if (timeDifference >= 6.0) {
+            pauseTime = 0.0;
+        } else if (timeDifference > 6.0 && timeDifference <= 6.5) {
+            pauseTime = timeDifference - 6.0;
+        } else if (timeDifference > 6.5 && timeDifference <= 9.5) {
+            pauseTime = 0.5;
+        } else if (timeDifference > 9.5 && timeDifference <= 9.75) {
+            pauseTime = timeDifference - 9.0;
+        } else if (timeDifference > 9.75) {
+            pauseTime = 0.75;
+        }
+
+        return pauseTime;
     }
 
-    @Test
-    public void timeDifferenceTest_invalidEndTimeFormat() {
+    public class TimePairSCAException extends RuntimeException {
+        private final String message;
+        private final Long messageNr;
 
-        TimePairSCA.TimePairSCAException aTimePairSCAException = assertThrows(TimePairSCA.TimePairSCAException.class,
-                () -> aTimePair.getTimeDifference("11:00", "EE:00"));
-
-        assertEquals(502, (long) aTimePairSCAException.getMessageNr());
-        System.out.println("Invalid END Time - Error Number: " + aTimePairSCAException.getMessageNr() + " " +
-                "Error text: " + aTimePairSCAException.getMessageText());
-    }
-
-    @Test
-    public void timeDifferenceTest_invalidTimePeriod() {
-
-        TimePairSCA.TimePairSCAException aTimePairSCAException = assertThrows(TimePairSCA.TimePairSCAException.class,
-                () -> aTimePair.getTimeDifference("19:00", "03:00"));
-
-        assertEquals(503, (long) aTimePairSCAException.getMessageNr());
-        System.out.println("Invalid TIME PERIOD - Error Number: " + aTimePairSCAException.getMessageNr() + " " +
-                "Error text: " + aTimePairSCAException.getMessageText());
-    }
-
-    @Test
-    public void getPauseTime_0min () {
-        assertEquals(0, aTimePair.getPauseTime("8:00", "12:30")*60, 0.001);
-    }
-
-    @Test
-    public void getPauseTime_0min2 () {
-        assertEquals(0, aTimePair.getPauseTime("08:00", "08:00")*60, 0.001);
-    }
-
-    @Test
-    public void getPauseTime_0min3 () {
-        assertEquals(0, aTimePair.getPauseTime("08:00", "14:00")*60, 0.001);
-    }
-
-    @Test
-    public void getPauseTime_30min () {
-        assertEquals(30, aTimePair.getPauseTime("8:00", "15:00")*60, 0.001);
-    }
-
-    @Test
-    public void getPauseTime_35min () {
-        assertEquals(35, aTimePair.getPauseTime("8:00", "17:35")*60, 0.001);
-    }
-
-    @Test
-    public void getPauseTime_45min () {
-        assertEquals(45, aTimePair.getPauseTime("8:00", "17:45")*60, 0.001);
+        public TimePairSCAException (String argMessage, long argMessageNr) {
+            super(argMessage);
+            message = argMessage;
+            messageNr = argMessageNr;
+        }
+        public String getMessageText() {
+            return message;
+        }
+        public Long getMessageNr() {
+            return messageNr;
+        }
     }
 }
+
